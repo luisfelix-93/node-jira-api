@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const request = require('request');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
-const fetch = ('fetch-node')
+const fetch = require('node-fetch')
 const app = express();
 
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -56,32 +56,34 @@ app.listen(3000, () => {
  *               example: Work log registrado com sucesso!
  */
 
-app.post('/worklog', (req, res) => {
+app.post('/worklog', async (req, res) => {
     const jiraToken = req.headers.authorization;
     const jiraTaskId = req.headers.taskid;
 
     const worklog = {
-        timeSpentSeconds: req.body.timeSpentSeconds,
-        comment: req.body.comment
+        
+        "comment": req.body.comment,
+        "started": req.body.started,
+        "timeSpentSeconds": req.body.timeSpentSeconds
     };
+    const url = `https://code7.atlassian.net/rest/api/3/issue/${jiraTaskId}/worklog`;
     const options = {
         method: 'POST',
-        url: `https://mytasks.atlassian.net/rest/api/3/issue/${jiraTaskId}/worklog`,
         headers:{
             'Content-Type': 'application/json',
             Authorization: `Bearer ${jiraToken}`,
         },
         body: JSON.stringify(worklog)
     };
-    request(options, (error, response, body) => {
-        if (error) {
-            throw new Error(error)
-        }else{
-            res.send("Worklog registrado com sucesso!")
-        }
-        
-    })
-})
+    try{
+        const response = await fetch(url, options);
+        const json = await response.json();
+        res.json(json);
+    } catch (error){
+        console.log(error);
+        res.status(500).json({error:'Erro interno de servidor'});
+    }
+});
 
 app.get('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -89,4 +91,3 @@ app.get('/api-docs.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
 })
-
