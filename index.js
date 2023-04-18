@@ -55,13 +55,40 @@ app.listen(3000, () => {
  *               type: string
  *               example: Work log registrado com sucesso!
  */
+app.get('/get-worklog', async(req, res) => {
+    const jiraTaskId = req.headers.taskid;
+    const jiraEmail = req.params.email;
+    const jiraToken = req.params.token;
+    const url = `https://myproject.atlassian.net/rest/api/3/issue/${jiraTaskId}/worklog`;
+    const options ={
+        method: 'GET',
+        headers:{
+            'Authorization': `Basic ${Buffer.from(`${jiraEmail}:${jiraToken}`)
+        .toString('base64')}`,
+            'Accept':'application/json',
+            'Content-Type': 'application/json'
+            
+            // Authorization: `Bearer ${jiraEmail[jiraToken]}`,
+        }
+    }
+    try{
+        const response = await fetch(url, options);
+        const json = await response.json();
+        res.json(json);
 
-app.post('/worklog', async (req, res) => {
-    const jiraToken = req.headers.authorization;
+    } catch (error){
+        console.log('Status 500, erro ao se comunicar com o servidor', error);
+        res.status(500).json({error:'Erro ao conectar ao servidor'});
+    }
+})
+
+app.post('/add-worklog', async (req, res) => {
+    const jiraToken = req.params.authorization;
+    const jiraEmail = req.params.email;
     const jiraTaskId = req.headers.taskid;
 
     const worklog = {
-        
+
         "comment": req.body.comment,
         "started": req.body.started,
         "timeSpentSeconds": req.body.timeSpentSeconds
@@ -70,8 +97,13 @@ app.post('/worklog', async (req, res) => {
     const options = {
         method: 'POST',
         headers:{
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${jiraToken}`,
+            'Authorization': `Basic ${Buffer.from(`${jiraEmail}:${jiraToken}`)
+        .toString('base64')}`,
+            'Accept':'application/json',
+            'Content-Type': 'application/json'
+            
+            // Authorization: `Bearer ${jiraEmail[jiraToken]}`,
+
         },
         body: JSON.stringify(worklog)
     };
@@ -85,9 +117,12 @@ app.post('/worklog', async (req, res) => {
     }
 });
 
+
+
 app.get('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get('/api-docs.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
 })
+
