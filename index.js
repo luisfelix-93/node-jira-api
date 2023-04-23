@@ -117,6 +117,39 @@ app.post('/add-worklog', async (req, res) => {
     }
 });
 
+app.put('update-worklog', async(req, res) =>{
+    const jiraIdWorklog = req.headers.idworklog;
+    const jiraTaskId = req.headers.taskid;
+    const worklog = {
+        "comment": req.body.comment,
+        "started": req.body.started,
+        "timeSpentSeconds": req.body.timeSpentSeconds
+    };
+     
+    const url = `https://code7.atlassian.net/rest/api/3/issue/${jiraTaskId}/worklog/${jiraIdWorklog}`;
+    const options = {
+        method: 'PUT',
+        headers:{
+                        'Authorization': `Basic ${Buffer.from(`${jiraEmail}:${jiraToken}`)
+        .toString('base64')}`,
+            'Accept':'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(worklog)
+    };
+    try{
+        const response = await fetch(url, options);
+        const json = await response.json();
+        res.json(json);
+
+    } catch(error){
+        console.log('Status 500, erro ao se comunicar com o servidor', error);
+        res.status(500).json({error:'Erro ao conectar ao servidor'});
+    }
+    
+
+
+})
 
 
 app.get('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
